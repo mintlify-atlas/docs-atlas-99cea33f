@@ -155,7 +155,7 @@ The API returns the standard CoinMarketCap v2 cryptocurrency info response forma
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://your-domain.com/api/token-info \
+curl -X POST https://bridge-wrapped.vercel.app/api/token-info \
   -H "Content-Type: application/json" \
   -d '{
     "addresses": [
@@ -166,7 +166,7 @@ curl -X POST https://your-domain.com/api/token-info \
 ```
 
 ```javascript JavaScript
-const response = await fetch('/api/token-info', {
+const response = await fetch('https://bridge-wrapped.vercel.app/api/token-info', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ console.log(data);
 ```python Python
 import requests
 
-url = "https://your-domain.com/api/token-info"
+url = "https://bridge-wrapped.vercel.app/api/token-info"
 payload = {
     "addresses": [
         "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
