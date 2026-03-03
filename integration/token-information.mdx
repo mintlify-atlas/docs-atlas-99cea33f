@@ -1,0 +1,455 @@
+---
+title: Token information and metadata
+description: How Bridge Wrapped handles token data, logos, and price information
+---
+
+Bridge Wrapped aggregates token information from multiple sources to provide accurate symbol mapping, decimal precision, and visual assets for bridged tokens.
+
+## Token data service
+
+The `CoinMarketCapService` class (`src/services/tokens/coinmarketcap.ts`) manages token metadata with intelligent fallback mechanisms.
+
+```typescript
+interface TokenInfo {
+  symbol: string;      // Token symbol (e.g., "USDC")
+  name: string;        // Full token name (e.g., "USD Coin")
+  decimals: number;    // Token precision (6 for USDC, 18 for ETH)
+  logo?: string;       // Logo image URL
+}
+```
+
+## Data sources
+
+### Primary: Bridge API responses
+
+Token information is first extracted from bridge provider APIs:
+
+<CodeGroup>
+```typescript Across
+const tokenSymbol = deposit.token?.symbol || deposit.inputToken;
+const tokenDecimals = deposit.token?.decimals || 18;
+const tokenPriceUSD = parseFloat(deposit.inputPriceUsd);
+```
+
+```typescript Relay
+const currencyIn = request.data.metadata?.currencyIn;
+const tokenSymbol = currencyIn?.currency?.symbol;
+const tokenDecimals = currencyIn?.currency?.decimals;
+const amountUSD = parseFloat(currencyIn?.amountUsd);
+```
+
+```typescript LiFi
+const tokenSymbol = transfer.sending.token.symbol;
+const tokenDecimals = transfer.sending.token.decimals;
+const tokenPriceUSD = parseFloat(transfer.sending.token.priceUSD);
+```
+</CodeGroup>
+
+### Fallback: Hardcoded token mappings
+
+For common tokens, the service maintains hardcoded mappings across multiple chains:
+
+#### Native and wrapped ETH
+
+```typescript
+// ETH (native address)
+if (lowerAddress === '0x0000000000000000000000000000000000000000' ||
+    lowerAddress === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
+  return {
+    symbol: 'ETH',
+    name: 'Ethereum',
+    decimals: 18,
+    logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png'
+  };
+}
+
+// WETH addresses across chains
+const wethAddresses = [
+  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',  // Ethereum mainnet
+  '0x4200000000000000000000000000000000000006',  // Base, Optimism, Mode
+  '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',  // Arbitrum
+  '0x5300000000000000000000000000000000000004',  // Scroll
+];
+```
+
+#### Stablecoins
+
+<Tabs>
+  <Tab title="USDC">
+    ```typescript
+    const usdcAddresses = [
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',  // Ethereum
+      '0xaf88d065e77c8cc2239327c5edb3a432268e5831',  // Arbitrum
+      '0x0b2c639c533813f4aa9d7837caf62653d097ff85',  // Optimism
+      '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',  // Base
+      '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',  // Polygon
+      '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',  // Polygon (old)
+      // ... 10+ more chain addresses
+    ];
+    
+    return {
+      symbol: 'USDC',
+      name: 'USD Coin',
+      decimals: 6,  // Important: 6 decimals, not 18!
+      logo: 'https://coin-images.coingecko.com/coins/images/6319/large/usdc.png'
+    };
+    ```
+  </Tab>
+  
+  <Tab title="USDT">
+    ```typescript
+    const usdtAddresses = [
+      '0xdac17f958d2ee523a2206206994597c13d831ec7',  // Ethereum
+      '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',  // Arbitrum
+      '0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',  // Optimism
+      '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',  // Polygon
+      // ... additional addresses
+    ];
+    
+    return {
+      symbol: 'USDT',
+      name: 'Tether USD',
+      decimals: 6,
+      logo: 'https://coin-images.coingecko.com/coins/images/35023/large/USDT.png'
+    };
+    ```
+  </Tab>
+  
+  <Tab title="DAI">
+    ```typescript
+    const daiAddresses = [
+      '0x6b175474e89094c44da98b954eedeac495271d0f',  // Ethereum
+      '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',  // Arbitrum, Optimism, Base
+      '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063',  // Polygon
+      '0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3',  // BSC
+    ];
+    
+    return {
+      symbol: 'DAI',
+      name: 'Dai Stablecoin',
+      decimals: 18,
+      logo: 'https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png'
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Tertiary: CoinMarketCap API
+
+For unknown tokens, the service queries the CoinMarketCap API:
+
+```typescript
+async getTokenInfo(address: string): Promise<TokenInfo | null> {
+  // Check cache first
+  const cached = this.cache.get(lowerAddress);
+  if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+    return cached.data;
+  }
+  
+  // Try fallback mappings
+  const fallbackInfo = this.getFallbackTokenInfo(address);
+  if (fallbackInfo) {
+    this.cache.set(lowerAddress, { data: fallbackInfo, timestamp: Date.now() });
+    return fallbackInfo;
+  }
+  
+  // Query CoinMarketCap API
+  const response = await this.fetchFromAPI([lowerAddress]);
+  if (response && response.status.error_code === 0) {
+    const tokenData = Object.values(response.data)[0];
+    // ... process and cache
+  }
+}
+```
+
+## Caching strategy
+
+Token information is cached for 1 hour to minimize API calls:
+
+```typescript
+private cache: Map<string, { data: TokenInfo; timestamp: number }> = new Map();
+private cacheExpiry = 1000 * 60 * 60; // 1 hour
+
+// Check if cached data is still valid
+if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+  return cached.data;
+}
+```
+
+<Info>
+The cache is stored in-memory and persists for the duration of the user's session.
+</Info>
+
+## Token amount parsing
+
+Token amounts are parsed from smallest units (wei) to human-readable decimals:
+
+```typescript
+import { parseTokenAmount } from '@/lib/utils';
+
+// Convert raw amount to formatted decimal
+const amountFormatted = parseTokenAmount(
+  '1000000',  // 1 USDC in raw units
+  6           // USDC has 6 decimals
+);
+// Returns: 1.0
+
+const amountFormatted = parseTokenAmount(
+  '1000000000000000000',  // 1 ETH in wei
+  18                      // ETH has 18 decimals
+);
+// Returns: 1.0
+```
+
+## Price information
+
+### Price sources
+
+Token prices (USD valuations) come exclusively from bridge provider APIs:
+
+<Warning>
+Bridge Wrapped does NOT fetch current token prices. All USD values reflect the price at the time of the bridge transaction as reported by the bridge protocol.
+</Warning>
+
+<CodeGroup>
+```typescript Across pricing
+let tokenPriceUSD = 0;
+if (deposit.inputPriceUsd) {
+  tokenPriceUSD = parseFloat(deposit.inputPriceUsd);
+} else if (deposit.token?.priceUsd) {
+  tokenPriceUSD = parseFloat(deposit.token.priceUsd);
+}
+
+const amountUSD = amountFormatted * tokenPriceUSD;
+```
+
+```typescript Relay pricing
+// Relay provides pre-calculated USD amounts
+const amountUSD = currencyIn?.amountUsd
+  ? parseFloat(currencyIn.amountUsd)
+  : 0;
+```
+
+```typescript LiFi pricing
+if (transfer.sending.amountUSD) {
+  amountUSD = parseFloat(transfer.sending.amountUSD);
+} else if (transfer.sending.token.priceUSD) {
+  const tokenPriceUSD = parseFloat(transfer.sending.token.priceUSD);
+  amountUSD = amountFormatted * tokenPriceUSD;
+}
+```
+</CodeGroup>
+
+## Token statistics
+
+The aggregator calculates token usage statistics:
+
+```typescript
+interface TokenStats {
+  symbol: string;           // Token symbol
+  address: string;          // Token contract address
+  count: number;            // Number of times bridged
+  totalVolumeUSD: number;   // Total USD volume
+  percentage: number;       // Percentage of total bridges
+  logo?: string;            // Token logo URL
+}
+```
+
+### Token tracking
+
+```typescript
+// Aggregate by token symbol (case-insensitive)
+const tokenKey = tx.tokenSymbol.toUpperCase();
+const tokenData = tokenCounts.get(tokenKey) || {
+  count: 0,
+  volumeUSD: 0,
+  address: tx.tokenAddress,
+};
+
+tokenData.count++;
+tokenData.volumeUSD += tx.amountUSD;
+tokenCounts.set(tokenKey, tokenData);
+```
+
+### Most bridged token
+
+Bridge Wrapped identifies your most frequently bridged token:
+
+```typescript
+// Find token with highest bridge count
+for (const [symbol, data] of tokenCounts) {
+  if (data.count > maxCount) {
+    maxCount = data.count;
+    maxSymbol = symbol;
+    maxData = data;
+  }
+}
+
+// Fetch logo from CoinMarketCap
+const tokenInfo = await coinMarketCapService.getTokenInfo(maxData.address);
+
+mostBridgedToken: {
+  symbol: maxSymbol,
+  address: maxData.address,
+  count: maxData.count,
+  totalVolumeUSD: maxData.volumeUSD,
+  percentage: (maxData.count / total) * 100,
+  logo: tokenInfo?.logo
+}
+```
+
+## Logo resolution
+
+Token logos are sourced from multiple providers:
+
+```typescript
+const SymbolToLogo: { [k: string]: string } = {
+  BNB: 'https://cryptologos.cc/logos/bnb-bnb-logo.png?v=040',
+  AVAX: 'https://cryptologos.cc/logos/avalanche-avax-logo.png?v=040',
+  DAI: 'https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png?v=040',
+  ETH: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=040',
+  USDC: 'https://coin-images.coingecko.com/coins/images/6319/large/usdc.png',
+  USDT: 'https://coin-images.coingecko.com/coins/images/35023/large/USDT.png',
+  WETH: 'https://coin-images.coingecko.com/coins/images/2518/large/weth.png',
+  // ... additional mappings
+};
+```
+
+<Note>
+Logos are loaded from external CDNs. The application gracefully handles missing logos by falling back to the token symbol display.
+</Note>
+
+## Batch token lookups
+
+For efficiency, token information can be fetched in bulk:
+
+```typescript
+async getMultipleTokenInfo(addresses: string[]): Promise<Map<string, TokenInfo>> {
+  const results = new Map<string, TokenInfo>();
+  
+  for (const address of addresses) {
+    const lowerAddress = address.toLowerCase();
+    
+    // Check cache
+    const cached = this.cache.get(lowerAddress);
+    if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+      results.set(lowerAddress, cached.data);
+      continue;
+    }
+    
+    // Get fallback info
+    const fallback = this.getFallbackTokenInfo(address);
+    if (fallback) {
+      this.cache.set(lowerAddress, { data: fallback, timestamp: Date.now() });
+      results.set(lowerAddress, fallback);
+    }
+  }
+  
+  return results;
+}
+```
+
+This is used when calculating top tokens:
+
+```typescript
+// Fetch all token logos in parallel
+const addresses = sorted.map(([, data]) => data.address);
+const tokenInfoMap = await coinMarketCapService.getMultipleTokenInfo(addresses);
+
+return sorted.map(([symbol, data]) => ({
+  symbol,
+  address: data.address,
+  count: data.count,
+  totalVolumeUSD: data.volumeUSD,
+  percentage: calculatePercentage(data.count, total),
+  logo: tokenInfoMap.get(data.address.toLowerCase())?.logo,
+}));
+```
+
+## Unknown token handling
+
+When a token cannot be identified, the service provides a safe fallback:
+
+```typescript
+// Final fallback for truly unknown tokens
+const unknownTokenInfo: TokenInfo = {
+  symbol: address.slice(0, 6) + '...' + address.slice(-4),  // e.g., "0x1234...5678"
+  name: 'Unknown Token',
+  decimals: 18,  // Default to 18 decimals
+};
+
+this.cache.set(lowerAddress, { data: unknownTokenInfo, timestamp: Date.now() });
+return unknownTokenInfo;
+```
+
+<Tip>
+This ensures the UI always displays something meaningful, even for newly deployed or unrecognized tokens.
+</Tip>
+
+## API integration details
+
+### Server-side vs client-side
+
+The service adapts based on execution environment:
+
+```typescript
+private isServer(): boolean {
+  return typeof window === 'undefined';
+}
+
+private async fetchFromAPI(addresses: string[]): Promise<CoinMarketCapResponse | null> {
+  if (this.isServer()) {
+    // Server: Call CoinMarketCap directly with API key
+    const apiKey = process.env.COINMARKETCAP_API_KEY;
+    response = await fetch(
+      `https://pro-api.coinmarketcap.com/v2/cryptocurrency/info?address=${addresses.join(',')}`,
+      { headers: { 'X-CMC_PRO_API_KEY': apiKey } }
+    );
+  } else {
+    // Client: Use internal API endpoint to hide key
+    response = await fetch('/api/token-info', {
+      method: 'POST',
+      body: JSON.stringify({ addresses })
+    });
+  }
+}
+```
+
+### Request timeout
+
+API requests are protected with a 5-second timeout:
+
+```typescript
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+const response = await fetch(url, {
+  signal: controller.signal,
+});
+
+clearTimeout(timeoutId);
+```
+
+## Common token addresses
+
+The `types.ts` file also defines a minimal set of common tokens for quick lookups:
+
+```typescript
+export const COMMON_TOKENS: Record<string, TokenInfo> = {
+  '0x0000000000000000000000000000000000000000': {
+    symbol: 'ETH',
+    address: '0x0000000000000000000000000000000000000000',
+    decimals: 18,
+  },
+  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': {
+    symbol: 'WETH',
+    address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    decimals: 18,
+  },
+  // ... USDC, USDT, DAI
+};
+```
+
+<Info>
+This provides a lightweight fallback before querying external services. Located in `src/services/bridges/types.ts:30`.
+</Info>

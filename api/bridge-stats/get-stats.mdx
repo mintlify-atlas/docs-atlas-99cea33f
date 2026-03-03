@@ -1,0 +1,717 @@
+---
+title: 'Get Bridge Stats'
+api: 'GET /api/bridge-stats/[address]'
+description: 'Retrieve comprehensive bridge statistics for a wallet address'
+---
+
+## Endpoint
+
+```
+GET /api/bridge-stats/{address}
+```
+
+Fetches and aggregates bridge statistics from multiple providers (Across, Relay, LiFi) for a specific wallet address.
+
+## Path Parameters
+
+<ParamField path="address" type="string" required>
+  Ethereum wallet address to fetch statistics for. Must be a valid 42-character hexadecimal address starting with `0x`.
+  
+  **Format**: `0x` followed by 40 hexadecimal characters (0-9, a-f, A-F)
+  
+  **Example**: `0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb`
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="year" type="integer" default="2025">
+  The year to fetch statistics for. Used to calculate the time range (January 1 00:00:00 to December 31 23:59:59 UTC).
+  
+  **Constraints**:
+  - Must be between 2020 and 2030
+  - Defaults to 2025 if not provided
+  
+  **Example**: `2024`
+</ParamField>
+
+## Request Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://yourdomain.com/api/bridge-stats/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb?year=2025" \
+  -H "Content-Type: application/json"
+```
+
+```javascript JavaScript
+const address = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const year = 2025;
+
+const response = await fetch(
+  `https://yourdomain.com/api/bridge-stats/${address}?year=${year}`
+);
+
+const stats = await response.json();
+console.log(stats);
+```
+
+```python Python
+import requests
+
+address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+year = 2025
+
+response = requests.get(
+    f"https://yourdomain.com/api/bridge-stats/{address}",
+    params={"year": year}
+)
+
+stats = response.json()
+print(stats)
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="walletAddress" type="string" required>
+  The wallet address that was queried (checksummed format)
+</ResponseField>
+
+<ResponseField name="year" type="integer" required>
+  The year for which statistics were calculated
+</ResponseField>
+
+<ResponseField name="generatedAt" type="string" required>
+  ISO 8601 timestamp when the statistics were generated
+  
+  **Example**: `2025-03-15T14:30:00.000Z`
+</ResponseField>
+
+<ResponseField name="totalBridgingActions" type="integer" required>
+  Total number of bridge transactions completed during the year
+</ResponseField>
+
+<ResponseField name="totalVolumeUSD" type="number" required>
+  Total USD value of all bridged assets (calculated at time of transaction)
+</ResponseField>
+
+<ResponseField name="mostUsedSourceChain" type="object">
+  The blockchain most frequently used as the source for bridge transactions
+  
+  <Expandable title="properties">
+    <ResponseField name="chainId" type="integer">
+      Numeric chain identifier
+    </ResponseField>
+    
+    <ResponseField name="chainName" type="string">
+      Human-readable chain name (e.g., "Ethereum", "Arbitrum")
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions from this chain
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      USD volume (always 0 for source chains)
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to chain logo image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mostUsedDestinationChain" type="object">
+  The blockchain most frequently used as the destination for bridge transactions
+  
+  <Expandable title="properties">
+    <ResponseField name="chainId" type="integer">
+      Numeric chain identifier
+    </ResponseField>
+    
+    <ResponseField name="chainName" type="string">
+      Human-readable chain name
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions to this chain
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      USD volume (0 for destination counts)
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to chain logo image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="highestVolumeDestination" type="object">
+  The destination chain with the highest total USD volume
+  
+  <Expandable title="properties">
+    <ResponseField name="chainId" type="integer">
+      Numeric chain identifier
+    </ResponseField>
+    
+    <ResponseField name="chainName" type="string">
+      Human-readable chain name
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions to this chain
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      Total USD volume bridged to this chain
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to chain logo image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mostBridgedToken" type="object">
+  The token most frequently bridged across all transactions
+  
+  <Expandable title="properties">
+    <ResponseField name="symbol" type="string">
+      Token symbol (e.g., "USDC", "ETH")
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Token contract address
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of times this token was bridged
+    </ResponseField>
+    
+    <ResponseField name="totalVolumeUSD" type="number">
+      Total USD value of this token bridged
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to token logo image from CoinMarketCap
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="busiestDay" type="object">
+  The date with the most bridge transactions
+  
+  <Expandable title="properties">
+    <ResponseField name="date" type="string">
+      Date in YYYY-MM-DD format
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions on this day
+    </ResponseField>
+    
+    <ResponseField name="primaryDestination" type="object">
+      The most common destination chain on this day
+      
+      <Expandable title="properties">
+        <ResponseField name="chainId" type="integer">
+          Numeric chain identifier
+        </ResponseField>
+        
+        <ResponseField name="chainName" type="string">
+          Human-readable chain name
+        </ResponseField>
+        
+        <ResponseField name="count" type="integer">
+          Number of transactions to this destination on the busiest day
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="providerBreakdown" type="object" required>
+  Usage statistics broken down by bridge provider
+  
+  <Expandable title="properties">
+    <ResponseField name="across" type="object">
+      <Expandable title="properties">
+        <ResponseField name="count" type="integer">
+          Number of transactions via Across Protocol
+        </ResponseField>
+        <ResponseField name="volumeUSD" type="number">
+          Total USD volume via Across
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="relay" type="object">
+      <Expandable title="properties">
+        <ResponseField name="count" type="integer">
+          Number of transactions via Relay
+        </ResponseField>
+        <ResponseField name="volumeUSD" type="number">
+          Total USD volume via Relay
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="lifi" type="object">
+      <Expandable title="properties">
+        <ResponseField name="count" type="integer">
+          Number of transactions via LiFi
+        </ResponseField>
+        <ResponseField name="volumeUSD" type="number">
+          Total USD volume via LiFi
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="monthlyActivity" type="array" required>
+  Array of monthly activity data for all 12 months (even if count is 0)
+  
+  <Expandable title="object properties">
+    <ResponseField name="month" type="string">
+      Month in YYYY-MM format
+    </ResponseField>
+    
+    <ResponseField name="monthName" type="string">
+      Full month name (e.g., "January", "February")
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions in this month
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      Total USD volume for this month
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topSourceChains" type="array" required>
+  Top 5 most used source chains, sorted by transaction count
+  
+  <Expandable title="object properties">
+    <ResponseField name="chainId" type="integer">
+      Numeric chain identifier
+    </ResponseField>
+    
+    <ResponseField name="chainName" type="string">
+      Human-readable chain name
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions from this chain
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      Always 0 for source chains
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to chain logo image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topDestinationChains" type="array" required>
+  Top 5 most used destination chains, sorted by transaction count
+  
+  <Expandable title="object properties">
+    <ResponseField name="chainId" type="integer">
+      Numeric chain identifier
+    </ResponseField>
+    
+    <ResponseField name="chainName" type="string">
+      Human-readable chain name
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of transactions to this chain
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="volumeUSD" type="number">
+      Always 0 for top destination counts
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to chain logo image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="topTokens" type="array" required>
+  Top 5 most bridged tokens, sorted by transaction count
+  
+  <Expandable title="object properties">
+    <ResponseField name="symbol" type="string">
+      Token symbol (e.g., "USDC", "WETH")
+    </ResponseField>
+    
+    <ResponseField name="address" type="string">
+      Token contract address
+    </ResponseField>
+    
+    <ResponseField name="count" type="integer">
+      Number of times this token was bridged
+    </ResponseField>
+    
+    <ResponseField name="totalVolumeUSD" type="number">
+      Total USD value of this token bridged
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number">
+      Percentage of total transactions (0-100)
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to token logo from CoinMarketCap
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="transactions" type="array" required>
+  Complete list of all normalized bridge transactions, sorted by timestamp
+  
+  <Expandable title="object properties">
+    <ResponseField name="id" type="string">
+      Unique transaction identifier
+    </ResponseField>
+    
+    <ResponseField name="provider" type="string">
+      Bridge provider: "across", "relay", or "lifi"
+    </ResponseField>
+    
+    <ResponseField name="txHash" type="string">
+      Transaction hash on the source chain
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="integer">
+      Unix timestamp in seconds
+    </ResponseField>
+    
+    <ResponseField name="sourceChainId" type="integer">
+      Source blockchain ID
+    </ResponseField>
+    
+    <ResponseField name="sourceChainName" type="string">
+      Human-readable source chain name
+    </ResponseField>
+    
+    <ResponseField name="destinationChainId" type="integer">
+      Destination blockchain ID
+    </ResponseField>
+    
+    <ResponseField name="destinationChainName" type="string">
+      Human-readable destination chain name
+    </ResponseField>
+    
+    <ResponseField name="tokenSymbol" type="string">
+      Token symbol being bridged
+    </ResponseField>
+    
+    <ResponseField name="tokenAddress" type="string">
+      Token contract address
+    </ResponseField>
+    
+    <ResponseField name="amount" type="string">
+      Raw token amount in smallest unit (wei)
+    </ResponseField>
+    
+    <ResponseField name="amountFormatted" type="number">
+      Human-readable amount with decimals
+    </ResponseField>
+    
+    <ResponseField name="amountUSD" type="number">
+      USD value at time of transaction
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Transaction status: "pending", "completed", or "failed"
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Response Example
+
+<ResponseExample>
+
+```json 200 Success
+{
+  "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "year": 2025,
+  "generatedAt": "2025-03-15T14:30:00.000Z",
+  "totalBridgingActions": 42,
+  "totalVolumeUSD": 125430.50,
+  "mostUsedSourceChain": {
+    "chainId": 1,
+    "chainName": "Ethereum",
+    "count": 18,
+    "percentage": 42.86,
+    "volumeUSD": 0,
+    "logo": "https://example.com/logos/ethereum.png"
+  },
+  "mostUsedDestinationChain": {
+    "chainId": 42161,
+    "chainName": "Arbitrum",
+    "count": 15,
+    "percentage": 35.71,
+    "volumeUSD": 0,
+    "logo": "https://example.com/logos/arbitrum.png"
+  },
+  "highestVolumeDestination": {
+    "chainId": 42161,
+    "chainName": "Arbitrum",
+    "count": 15,
+    "percentage": 35.71,
+    "volumeUSD": 85230.25,
+    "logo": "https://example.com/logos/arbitrum.png"
+  },
+  "mostBridgedToken": {
+    "symbol": "USDC",
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "count": 28,
+    "totalVolumeUSD": 95600.00,
+    "percentage": 66.67,
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png"
+  },
+  "busiestDay": {
+    "date": "2025-06-15",
+    "count": 8,
+    "primaryDestination": {
+      "chainId": 42161,
+      "chainName": "Arbitrum",
+      "count": 5
+    }
+  },
+  "providerBreakdown": {
+    "across": {
+      "count": 25,
+      "volumeUSD": 78500.25
+    },
+    "relay": {
+      "count": 12,
+      "volumeUSD": 35200.00
+    },
+    "lifi": {
+      "count": 5,
+      "volumeUSD": 11730.25
+    }
+  },
+  "monthlyActivity": [
+    {
+      "month": "2025-01",
+      "monthName": "January",
+      "count": 5,
+      "volumeUSD": 15230.50
+    },
+    {
+      "month": "2025-02",
+      "monthName": "February",
+      "count": 3,
+      "volumeUSD": 8400.00
+    },
+    {
+      "month": "2025-03",
+      "monthName": "March",
+      "count": 0,
+      "volumeUSD": 0
+    }
+  ],
+  "topSourceChains": [
+    {
+      "chainId": 1,
+      "chainName": "Ethereum",
+      "count": 18,
+      "percentage": 42.86,
+      "volumeUSD": 0,
+      "logo": "https://example.com/logos/ethereum.png"
+    },
+    {
+      "chainId": 10,
+      "chainName": "Optimism",
+      "count": 12,
+      "percentage": 28.57,
+      "volumeUSD": 0,
+      "logo": "https://example.com/logos/optimism.png"
+    }
+  ],
+  "topDestinationChains": [
+    {
+      "chainId": 42161,
+      "chainName": "Arbitrum",
+      "count": 15,
+      "percentage": 35.71,
+      "volumeUSD": 0,
+      "logo": "https://example.com/logos/arbitrum.png"
+    },
+    {
+      "chainId": 8453,
+      "chainName": "Base",
+      "count": 10,
+      "percentage": 23.81,
+      "volumeUSD": 0,
+      "logo": "https://example.com/logos/base.png"
+    }
+  ],
+  "topTokens": [
+    {
+      "symbol": "USDC",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "count": 28,
+      "totalVolumeUSD": 95600.00,
+      "percentage": 66.67,
+      "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png"
+    },
+    {
+      "symbol": "WETH",
+      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "count": 10,
+      "totalVolumeUSD": 25830.50,
+      "percentage": 23.81,
+      "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/2396.png"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "across-1234567890",
+      "provider": "across",
+      "txHash": "0xabc123...",
+      "timestamp": 1704067200,
+      "sourceChainId": 1,
+      "sourceChainName": "Ethereum",
+      "destinationChainId": 42161,
+      "destinationChainName": "Arbitrum",
+      "tokenSymbol": "USDC",
+      "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "amount": "5000000000",
+      "amountFormatted": 5000,
+      "amountUSD": 5000.00,
+      "status": "completed"
+    }
+  ]
+}
+```
+
+```json 400 Invalid Address
+{
+  "error": "Invalid wallet address"
+}
+```
+
+```json 400 Invalid Year
+{
+  "error": "Invalid year parameter"
+}
+```
+
+```json 500 Server Error
+{
+  "error": "Failed to fetch bridge statistics"
+}
+```
+
+</ResponseExample>
+
+## Error Codes
+
+<ResponseField name="400" type="Bad Request">
+  Invalid request parameters
+  
+  **Causes**:
+  - Address is not a valid Ethereum address (must match pattern `0x[a-fA-F0-9]{40}`)
+  - Year parameter is not a number
+  - Year is outside the valid range (2020-2030)
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  Failed to fetch or process bridge statistics
+  
+  **Causes**:
+  - Upstream provider API failures (all providers failed)
+  - Database connection issues
+  - Unexpected errors during data aggregation
+  
+  **Note**: Individual provider failures are handled gracefully - the endpoint only returns 500 if the entire operation fails
+</ResponseField>
+
+## Implementation Details
+
+### Address Validation
+
+The endpoint validates Ethereum addresses using the regex pattern:
+```javascript
+/^0x[a-fA-F0-9]{40}$/
+```
+
+This ensures:
+- Address starts with `0x`
+- Followed by exactly 40 hexadecimal characters
+- Case-insensitive validation (both checksummed and lowercase accepted)
+
+### Year Processing
+
+The year parameter:
+1. Defaults to 2025 if not provided
+2. Must be an integer between 2020 and 2030
+3. Used to calculate Unix timestamps for the full calendar year (UTC timezone)
+4. Start: January 1, 00:00:00 UTC
+5. End: December 31, 23:59:59 UTC
+
+### Data Aggregation Flow
+
+1. **Parallel Fetching**: Queries all three providers simultaneously
+2. **Error Tolerance**: Individual provider failures don't stop the entire request
+3. **Deduplication**: Combines results and removes duplicate transactions
+4. **Statistics Calculation**: Processes normalized transactions to generate all metrics
+5. **Logo Enrichment**: Fetches token logos from CoinMarketCap API
+
+### Transaction Deduplication
+
+Transactions are deduplicated using a composite key:
+```
+{txHash.toLowerCase()}-{sourceChainId}-{destinationChainId}
+```
+
+When duplicates are found:
+- Prefer transactions with USD value > 0
+- Keep the most complete transaction data
+
+## Notes
+
+- All USD values are calculated at the time of the original transaction
+- Token logos are fetched from CoinMarketCap when available
+- Chain logos are provided from the internal chain registry
+- Monthly activity always includes all 12 months (with 0 counts for inactive months)
+- Top lists (chains, tokens) are limited to 5 items maximum
+- Transactions are sorted chronologically (oldest first)
+- Null values indicate no activity (e.g., `mostBridgedToken: null` if no transactions)

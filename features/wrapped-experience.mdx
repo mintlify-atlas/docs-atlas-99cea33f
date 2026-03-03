@@ -1,0 +1,379 @@
+---
+title: Wrapped experience
+description: An interactive, Spotify Wrapped-style presentation of your bridging statistics with animated slides and engaging visualizations
+---
+
+Bridge Wrapped delivers your cross-chain activity as an immersive, story-driven experience inspired by Spotify Wrapped.
+
+## Overview
+
+The Wrapped experience transforms raw bridging data into a compelling narrative through a series of animated slides, each highlighting a different aspect of your on-chain journey.
+
+## Slide structure
+
+The experience consists of up to 10 slides, dynamically shown based on available data:
+
+<Steps>
+  <Step title="Intro">
+    Animated title card with the year
+  </Step>
+  <Step title="Total bridges">
+    Your total number of bridging transactions
+  </Step>
+  <Step title="Top source chain">
+    Your most frequently used source blockchain
+  </Step>
+  <Step title="Top destination">
+    Your preferred destination chain
+  </Step>
+  <Step title="Volume">
+    Total USD value bridged and highest volume destination
+  </Step>
+  <Step title="Top token">
+    Most frequently bridged token
+  </Step>
+  <Step title="Busiest day">
+    Day with the most bridging activity
+  </Step>
+  <Step title="User class">
+    Personalized classification based on behavior patterns
+  </Step>
+  <Step title="Avail Nexus">
+    Promotional slide for Avail's unification layer
+  </Step>
+  <Step title="Summary">
+    Comprehensive overview with monthly activity chart
+  </Step>
+</Steps>
+
+## Implementation
+
+The Wrapped experience is built with React, Framer Motion, and a custom slide orchestration system:
+
+```tsx src/components/wrapped/WrappedContainer.tsx
+export function WrappedContainer({ stats, onComplete }: WrappedContainerProps) {
+  const userClass = classifyUser(stats.transactions, stats.totalVolumeUSD);
+  
+  // Build slides array based on available data
+  const availableSlides: SlideType[] = ['intro', 'totalBridges'];
+
+  if (stats.mostUsedSourceChain) availableSlides.push('topSource');
+  if (stats.mostUsedDestinationChain) availableSlides.push('topDestination');
+  if (stats.totalVolumeUSD > 0) availableSlides.push('volume');
+  if (stats.mostBridgedToken) availableSlides.push('topToken');
+  if (stats.busiestDay) availableSlides.push('busiestDay');
+  
+  availableSlides.push('userClass', 'availNexus', 'summary');
+
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const currentSlide = availableSlides[currentSlideIndex];
+
+  // Navigation handlers
+  const goToNextSlide = useCallback(() => {
+    if (currentSlideIndex < availableSlides.length - 1) {
+      setCurrentSlideIndex((prev) => prev + 1);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [currentSlideIndex, availableSlides.length, onComplete]);
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden cursor-pointer">
+      <AnimatePresence mode="wait">{renderSlide()}</AnimatePresence>
+      {/* Progress indicators and navigation */}
+    </div>
+  );
+}
+```
+
+### Dynamic slide generation
+
+Slides are conditionally included based on data availability:
+
+```typescript
+if (stats.mostUsedSourceChain) {
+  availableSlides.push('topSource');
+}
+```
+
+This ensures users only see slides relevant to their activity - wallets with no bridging history see a minimal experience.
+
+<Info>
+  The intro, user class, Avail Nexus, and summary slides always appear, while statistics slides are data-dependent.
+</Info>
+
+## Navigation
+
+Users can navigate through slides using multiple input methods:
+
+<Tabs>
+  <Tab title="Keyboard">
+    - **Right arrow** or **Space**: Next slide
+    - **Left arrow**: Previous slide
+  </Tab>
+  <Tab title="Click/Touch">
+    - **Left half of screen**: Previous slide
+    - **Right half of screen**: Next slide
+  </Tab>
+  <Tab title="Navigation arrows">
+    Visible arrow buttons on left/right edges for explicit navigation
+  </Tab>
+</Tabs>
+
+```typescript
+// Keyboard navigation
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      goToNextSlide();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      goToPrevSlide();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [goToNextSlide, goToPrevSlide]);
+
+// Click/touch navigation
+const handleClick = (e: React.MouseEvent) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const isLeftHalf = x < rect.width / 2;
+
+  if (isLeftHalf) {
+    goToPrevSlide();
+  } else {
+    goToNextSlide();
+  }
+};
+```
+
+## Animations
+
+All slides use Framer Motion for smooth, choreographed animations:
+
+### Slide container
+
+The base container provides fade transitions:
+
+```tsx src/components/wrapped/slides/SlideContainer.tsx
+export function SlideContainer({ children, gradient }: SlideContainerProps) {
+  return (
+    <motion.div
+      className={`min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br ${gradient}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="max-w-4xl w-full text-center">{children}</div>
+    </motion.div>
+  );
+}
+```
+
+### Intro slide
+
+The intro features cascading animations:
+
+```tsx src/components/wrapped/slides/IntroSlide.tsx
+export function IntroSlide({ year }: IntroSlideProps) {
+  return (
+    <SlideContainer gradient="from-neutral-950 via-neutral-900 to-neutral-950">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
+      >
+        <motion.h1
+          className="text-5xl md:text-7xl lg:text-[10rem] font-bold"
+          initial={{ y: 50 }}
+          animate={{ y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+        >
+          Bridge
+          <span className="inline-block mt-3">Wrapped</span>
+        </motion.h1>
+        <motion.p
+          className="text-xl md:text-2xl lg:text-6xl"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.6 }}
+        >
+          {year}
+        </motion.p>
+      </motion.div>
+    </SlideContainer>
+  );
+}
+```
+
+<Note>
+  Animation delays are carefully choreographed - title appears at 0.4s, year at 0.7s, and tagline at 1.2s for a smooth reveal sequence.
+</Note>
+
+### User class slide
+
+The user class slide features a card-flip animation:
+
+```tsx
+<motion.div
+  initial={{ scale: 0.5, opacity: 0, rotateY: 180 }}
+  animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+  transition={{ delay: 0.5, duration: 0.8, type: 'spring' }}
+>
+  {/* Card content */}
+</motion.div>
+```
+
+The card includes:
+- **Gradient border** for a premium, holographic appearance
+- **Character image** showing the user's classification
+- **Animated stat bars** that fill based on activity levels
+- **Rarity stars** that appear sequentially
+
+## Progress indicators
+
+A dynamic progress bar shows the user's position in the experience:
+
+```tsx
+<div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2">
+  {availableSlides.map((_, index) => (
+    <motion.div
+      key={index}
+      className={`h-1 rounded-full transition-all duration-300 ${
+        index === currentSlideIndex
+          ? 'w-8 bg-white'
+          : index < currentSlideIndex
+          ? 'w-4 bg-white/60'
+          : 'w-4 bg-white/30'
+      }`}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+    />
+  ))}
+</div>
+```
+
+Dots represent:
+- **Current slide**: Longer, brighter white bar
+- **Completed slides**: Shorter, semi-transparent bars
+- **Upcoming slides**: Shortest, most transparent bars
+
+## Animated counter component
+
+Numbers animate from 0 to their final value:
+
+```tsx src/components/ui/AnimatedCounter.tsx
+export function AnimatedCounter({ value, formatFn }: AnimatedCounterProps) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime: number;
+    const duration = 1500;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(value * easeOut));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(value);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return <span>{formatFn ? formatFn(count) : count}</span>;
+}
+```
+
+The counter uses:
+- **Cubic ease-out** for natural deceleration
+- **requestAnimationFrame** for smooth 60fps animation
+- **Custom format functions** for currency, percentages, and number formatting
+
+<Tip>
+  Use `AnimatedCounter` for all numeric displays to maintain consistency across slides. It supports custom formatters like `formatNumber()`, `formatUSD()`, and `formatPercentage()`.
+</Tip>
+
+## Responsive design
+
+All slides adapt to different screen sizes:
+
+```css
+text-5xl md:text-7xl lg:text-[10rem]
+px-6 py-12 md:px-16 md:py-16 lg:px-20 lg:py-20
+space-y-6 md:space-y-8
+```
+
+Breakpoints:
+- **Mobile**: `< 768px` - Compact layouts, smaller text
+- **Tablet**: `768px - 1024px` - Medium sizing
+- **Desktop**: `> 1024px` - Full experience with large typography
+
+## Gradient themes
+
+Each slide uses a unique gradient background:
+
+```typescript
+const SLIDE_GRADIENTS = {
+  intro: 'from-neutral-950 via-neutral-900 to-neutral-950',
+  totalBridges: 'from-violet-950 via-purple-900 to-neutral-950',
+  topSource: 'from-blue-950 via-blue-900 to-neutral-950',
+  volume: 'from-emerald-950 via-green-900 to-neutral-950',
+  userClass: 'from-neutral-950 via-neutral-900 to-neutral-950',
+};
+```
+
+<Warning>
+  Gradients use dark tones (`950`, `900`) to ensure white text remains readable and to maintain the premium, immersive aesthetic.
+</Warning>
+
+## Completion callback
+
+When the user reaches the final slide and advances, an optional completion callback fires:
+
+```tsx
+const goToNextSlide = useCallback(() => {
+  if (currentSlideIndex < availableSlides.length - 1) {
+    setCurrentSlideIndex((prev) => prev + 1);
+  } else if (onComplete) {
+    onComplete(); // Return to main view or trigger sharing
+  }
+}, [currentSlideIndex, availableSlides.length, onComplete]);
+```
+
+This allows parent components to:
+- Return to the stats summary view
+- Trigger social sharing modals
+- Track completion analytics
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Optimize image loading">
+    Use Next.js Image component with `priority` prop for above-the-fold images and `loading="lazy"` for slides that appear later in the sequence.
+  </Accordion>
+  
+  <Accordion title="Preload animations">
+    Initialize Framer Motion components early to prevent janky first-slide animations. The `AnimatePresence` wrapper handles this automatically.
+  </Accordion>
+  
+  <Accordion title="Test on mobile">
+    Touch navigation must work flawlessly - ensure click areas are at least 44x44px and test on real devices, not just browser emulation.
+  </Accordion>
+  
+  <Accordion title="Respect reduced motion">
+    Consider adding a `prefers-reduced-motion` media query check to disable complex animations for users with motion sensitivity.
+  </Accordion>
+</AccordionGroup>

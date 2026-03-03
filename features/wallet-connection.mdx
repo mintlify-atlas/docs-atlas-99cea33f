@@ -1,0 +1,285 @@
+---
+title: Wallet connection
+description: Connect your wallet to Bridge Wrapped using RainbowKit and Wagmi for seamless multi-chain interactions
+---
+
+Bridge Wrapped uses RainbowKit and Wagmi to provide a secure, user-friendly wallet connection experience across 15+ supported chains.
+
+## Supported wallets
+
+RainbowKit provides built-in support for popular Web3 wallets:
+
+- MetaMask
+- WalletConnect
+- Coinbase Wallet
+- Rainbow Wallet
+- Trust Wallet
+- And many more via WalletConnect
+
+## Supported chains
+
+Bridge Wrapped supports 15 blockchain networks:
+
+<CardGroup cols={3}>
+  <Card title="Ethereum" icon="ethereum">
+    Mainnet (Chain ID: 1)
+  </Card>
+  <Card title="Optimism" icon="circle">
+    OP Mainnet (Chain ID: 10)
+  </Card>
+  <Card title="Arbitrum" icon="hexagon">
+    Arbitrum One (Chain ID: 42161)
+  </Card>
+  <Card title="Base" icon="square">
+    Base Mainnet (Chain ID: 8453)
+  </Card>
+  <Card title="Polygon" icon="triangle">
+    Polygon PoS (Chain ID: 137)
+  </Card>
+  <Card title="BNB Chain" icon="diamond">
+    BSC Mainnet (Chain ID: 56)
+  </Card>
+</CardGroup>
+
+Additional chains include Avalanche, Gnosis, Fantom, Linea, Scroll, zkSync, Blast, Mode, and Mantle.
+
+## Configuration
+
+The wallet configuration is managed through Wagmi's `getDefaultConfig` helper:
+
+```typescript src/lib/wagmiConfig.ts
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import {
+  mainnet,
+  optimism,
+  arbitrum,
+  base,
+  polygon,
+  bsc,
+  avalanche,
+  gnosis,
+  fantom,
+  linea,
+  scroll,
+  zkSync,
+  blast,
+  mode,
+  mantle,
+} from 'wagmi/chains';
+
+export const config = getDefaultConfig({
+  appName: 'Bridge Wrapped',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
+  chains: [
+    mainnet,
+    optimism,
+    arbitrum,
+    base,
+    polygon,
+    bsc,
+    avalanche,
+    gnosis,
+    fantom,
+    linea,
+    scroll,
+    zkSync,
+    blast,
+    mode,
+    mantle,
+  ],
+  ssr: true,
+});
+```
+
+<Note>
+  The `ssr: true` option enables server-side rendering support for Next.js applications.
+</Note>
+
+## Provider setup
+
+The application wraps all providers in a `Providers` component that handles hydration and theming:
+
+```tsx src/components/Providers.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import { config } from '@/lib/wagmiConfig';
+
+const queryClient = new QueryClient();
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: '#8B5CF6',
+            accentColorForeground: 'white',
+            borderRadius: 'large',
+            fontStack: 'system',
+          })}
+        >
+          <BridgeStatsProvider>
+            {mounted ? children : null}
+          </BridgeStatsProvider>
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+```
+
+### Theme customization
+
+The RainbowKit theme uses:
+- **Accent color**: Purple (`#8B5CF6`) for primary actions
+- **Border radius**: Large for a modern, rounded appearance
+- **Font stack**: System fonts for optimal performance
+
+## Custom connect button
+
+Bridge Wrapped implements a custom connect button using RainbowKit's `ConnectButton.Custom` component:
+
+```tsx src/components/wallet/ConnectButton.tsx
+import { ConnectButton as RainbowConnectButton } from '@rainbow-me/rainbowkit';
+
+export function ConnectButton() {
+  return (
+    <RainbowConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        authenticationStatus,
+        mounted,
+      }) => {
+        const ready = mounted && authenticationStatus !== 'loading';
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus || authenticationStatus === 'authenticated');
+
+        return (
+          <div {...(!ready && { 'aria-hidden': true })}>
+            {(() => {
+              if (!connected) {
+                return (
+                  <button onClick={openConnectModal}>
+                    Connect Wallet
+                  </button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <button onClick={openChainModal}>
+                    Wrong network
+                  </button>
+                );
+              }
+
+              return (
+                <div className="flex items-center gap-3">
+                  <button onClick={openChainModal}>
+                    {chain.name}
+                  </button>
+                  <button onClick={openAccountModal}>
+                    {account.displayName}
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </RainbowConnectButton.Custom>
+  );
+}
+```
+
+### Button states
+
+The connect button handles three primary states:
+
+<Steps>
+  <Step title="Disconnected">
+    Shows "Connect Wallet" button that opens the wallet selection modal
+  </Step>
+  <Step title="Wrong network">
+    Shows "Wrong network" button if the user is connected to an unsupported chain
+  </Step>
+  <Step title="Connected">
+    Displays chain selector and account details with ENS name or truncated address
+  </Step>
+</Steps>
+
+## Connection flow
+
+When a user connects their wallet:
+
+1. **User clicks "Connect Wallet"** - Opens RainbowKit's wallet selection modal
+2. **User selects wallet** - Wallet extension prompts for connection approval
+3. **Connection established** - Application receives wallet address and chain information
+4. **Stats loading begins** - Bridge Wrapped fetches transaction history from all supported bridges
+5. **Wrapped experience starts** - User can view their personalized bridging statistics
+
+<Warning>
+  Users must be connected to a supported network to view their Bridge Wrapped statistics. If connected to an unsupported network, they'll see a prompt to switch chains.
+</Warning>
+
+## ENS integration
+
+Bridge Wrapped automatically resolves ENS names for connected wallets:
+
+```typescript src/hooks/useEnsName.ts
+import { useEnsName as useWagmiEnsName } from 'wagmi';
+import { mainnet } from 'wagmi/chains';
+
+export function useEnsName(address: string) {
+  const { data: ensName } = useWagmiEnsName({
+    address: address as `0x${string}`,
+    chainId: mainnet.id,
+  });
+
+  return ensName;
+}
+```
+
+ENS names are displayed in the user class slide and throughout the Wrapped experience, providing a more personalized interface.
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Handle connection errors gracefully">
+    Always check the `authenticationStatus` and `mounted` states before rendering wallet-dependent UI. This prevents hydration mismatches and improves user experience.
+  </Accordion>
+  
+  <Accordion title="Support network switching">
+    Provide clear UI feedback when users are on unsupported networks. The `chain.unsupported` property helps identify this state.
+  </Accordion>
+  
+  <Accordion title="Use proper TypeScript types">
+    Leverage Wagmi's type safety for addresses (`0x${string}`) and chain IDs to prevent runtime errors.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<Warning>
+  **WalletConnect project ID required**: Make sure to set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in your environment variables. Without it, WalletConnect-based wallets won't function properly.
+</Warning>
+
+Common issues:
+
+- **Connection rejected**: User declined the connection request in their wallet
+- **Network mismatch**: User is on a network not in the supported chains list
+- **Hydration errors**: Ensure the `mounted` state is properly checked before rendering wallet UI

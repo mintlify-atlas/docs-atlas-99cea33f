@@ -1,0 +1,356 @@
+---
+title: Supported blockchain networks
+description: Complete list of blockchain networks supported by Bridge Wrapped
+---
+
+Bridge Wrapped supports over 100 blockchain networks across EVM and non-EVM ecosystems. Chain information is centrally managed in `src/services/chains/chainInfo.ts`.
+
+## Chain data structure
+
+Each chain is defined with comprehensive metadata:
+
+```typescript
+interface ChainInfo {
+  id: number;                    // Chain ID
+  name: string;                  // Full chain name
+  shortName: string;             // Short identifier
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  blockExplorer: string;         // Base explorer URL
+  color: string;                 // Brand color (hex)
+  logoUrl?: string;              // Chain logo URL
+}
+```
+
+## Major networks
+
+### Layer 1 chains
+
+<CardGroup cols={2}>
+  <Card title="Ethereum" icon="ethereum">
+    **Chain ID**: 1  
+    **Symbol**: ETH  
+    **Explorer**: etherscan.io  
+    The primary Layer 1 blockchain for cross-chain bridging.
+  </Card>
+  
+  <Card title="BNB Chain" icon="link">
+    **Chain ID**: 56  
+    **Symbol**: BNB  
+    **Explorer**: bscscan.com  
+    Formerly Binance Smart Chain.
+  </Card>
+  
+  <Card title="Polygon" icon="link">
+    **Chain ID**: 137  
+    **Symbol**: MATIC  
+    **Explorer**: polygonscan.com  
+    High-performance EVM-compatible sidechain.
+  </Card>
+  
+  <Card title="Avalanche" icon="link">
+    **Chain ID**: 43114  
+    **Symbol**: AVAX  
+    **Explorer**: snowtrace.io  
+    Fast, low-cost blockchain platform.
+  </Card>
+</CardGroup>
+
+### Layer 2 rollups
+
+<CardGroup cols={2}>
+  <Card title="Arbitrum One" icon="link">
+    **Chain ID**: 42161  
+    **Symbol**: ETH  
+    **Explorer**: arbiscan.io  
+    Optimistic rollup for Ethereum scaling.
+  </Card>
+  
+  <Card title="Optimism" icon="link">
+    **Chain ID**: 10  
+    **Symbol**: ETH  
+    **Explorer**: optimistic.etherscan.io  
+    EVM-equivalent optimistic rollup.
+  </Card>
+  
+  <Card title="Base" icon="link">
+    **Chain ID**: 8453  
+    **Symbol**: ETH  
+    **Explorer**: basescan.org  
+    Coinbase's Layer 2 network.
+  </Card>
+  
+  <Card title="zkSync Era" icon="link">
+    **Chain ID**: 324  
+    **Symbol**: ETH  
+    **Explorer**: explorer.zksync.io  
+    ZK rollup for secure, low-cost transactions.
+  </Card>
+</CardGroup>
+
+### Emerging L2s
+
+<AccordionGroup>
+  <Accordion title="Blast - Chain ID 81457">
+    Native yield Layer 2 built on Ethereum.  
+    **Explorer**: blastscan.io  
+    **Native currency**: ETH
+  </Accordion>
+  
+  <Accordion title="Scroll - Chain ID 534352">
+    zkEVM Layer 2 with native bytecode compatibility.  
+    **Explorer**: scrollscan.com  
+    **Native currency**: ETH
+  </Accordion>
+  
+  <Accordion title="Linea - Chain ID 59144">
+    ConsenSys zkEVM rollup.  
+    **Explorer**: lineascan.build  
+    **Native currency**: ETH
+  </Accordion>
+  
+  <Accordion title="Mode - Chain ID 34443">
+    Modular DeFi Layer 2 built on OP Stack.  
+    **Explorer**: explorer.mode.network  
+    **Native currency**: ETH
+  </Accordion>
+</AccordionGroup>
+
+## Non-EVM chains
+
+Bridge Wrapped supports bridging to non-EVM chains through adapted chain IDs:
+
+### Solana
+
+```typescript
+// Solana has two chain ID representations
+34268394551451: {  // Across Protocol representation
+  name: 'Solana',
+  shortName: 'SOL',
+  nativeCurrency: { name: 'Solana', symbol: 'SOL', decimals: 9 },
+  blockExplorer: 'https://solscan.io'
+}
+
+792703809: {  // Relay representation
+  name: 'Solana',
+  shortName: 'SOL',
+  // ... same properties
+}
+```
+
+### Bitcoin
+
+```typescript
+8253038: {  // Via Relay
+  name: 'Bitcoin',
+  shortName: 'BTC',
+  nativeCurrency: { name: 'Bitcoin', symbol: 'BTC', decimals: 8 },
+  blockExplorer: 'https://mempool.space'
+}
+```
+
+### Tron
+
+```typescript
+728126428: {
+  name: 'Tron',
+  shortName: 'TRX',
+  nativeCurrency: { name: 'Tron', symbol: 'TRX', decimals: 6 },
+  blockExplorer: 'https://tronscan.org'
+}
+```
+
+## Chain helper functions
+
+The chain service provides utility functions for working with chain data:
+
+### Get chain name
+
+```typescript
+import { getChainName } from '@/services/chains/chainInfo';
+
+const chainName = getChainName(1);  // Returns "Ethereum"
+const unknownChain = getChainName(999999);  // Returns "Chain 999999"
+```
+
+### Get chain information
+
+```typescript
+import { getChainInfo } from '@/services/chains/chainInfo';
+
+const chainInfo = getChainInfo(42161);
+// Returns full ChainInfo object for Arbitrum One
+```
+
+### Get block explorer URL
+
+```typescript
+import { getExplorerTxUrl } from '@/services/chains/chainInfo';
+
+const explorerUrl = getExplorerTxUrl(
+  1,
+  '0x1234...'
+);
+// Returns "https://etherscan.io/tx/0x1234..."
+```
+
+### Get chain branding
+
+```typescript
+import { getChainColor, getChainLogo } from '@/services/chains/chainInfo';
+
+const color = getChainColor(10);  // Returns "#FF0420" (Optimism red)
+const logo = getChainLogo(8453);  // Returns Base logo URL
+```
+
+## Chain statistics
+
+The aggregator calculates statistics for both source and destination chains:
+
+```typescript
+interface ChainStats {
+  chainId: number;
+  chainName: string;
+  count: number;           // Number of transactions
+  percentage: number;      // Percentage of total activity
+  volumeUSD: number;       // Total USD volume
+  logo?: string;           // Chain logo URL
+}
+```
+
+### Top chains tracking
+
+Bridge Wrapped tracks your most used chains:
+
+```typescript
+// Top 5 source chains you bridge FROM
+topSourceChains: ChainStats[];
+
+// Top 5 destination chains you bridge TO
+topDestinationChains: ChainStats[];
+
+// Single most used source chain
+mostUsedSourceChain: ChainStats | null;
+
+// Single most used destination chain
+mostUsedDestinationChain: ChainStats | null;
+
+// Chain with highest USD volume
+highestVolumeDestination: ChainStats | null;
+```
+
+## Complete chain list
+
+Bridge Wrapped supports these blockchain networks:
+
+<Tabs>
+  <Tab title="EVM Layer 1">
+    - Ethereum (1)
+    - BNB Chain (56)
+    - Polygon (137)
+    - Avalanche C-Chain (43114)
+    - Fantom (250)
+    - Gnosis (100)
+    - Celo (42220)
+  </Tab>
+  
+  <Tab title="EVM Layer 2">
+    - Optimism (10)
+    - Arbitrum One (42161)
+    - Arbitrum Nova (42170)
+    - Base (8453)
+    - zkSync Era (324)
+    - Polygon zkEVM (1101)
+    - Linea (59144)
+    - Scroll (534352)
+    - Blast (81457)
+    - Mode (34443)
+    - Mantle (5000)
+    - Zora (7777777)
+  </Tab>
+  
+  <Tab title="Emerging chains">
+    - Berachain (80094)
+    - Monad (143)
+    - Sonic (146)
+    - Unichain (130)
+    - World Chain (480)
+    - Abstract (2741)
+    - Lens Chains (232)
+    - Sophon (50104)
+    - Taiko (167000)
+    - Ink (57073)
+    - Plume (98866)
+  </Tab>
+  
+  <Tab title="Gaming & NFT">
+    - ApeChain (33139)
+    - RARI Chain (1380012617)
+    - Ancient8 (888888888)
+    - Degen (666666666)
+    - Ronin (2020)
+    - Immutable zkEVM (13371)
+    - Xai (660279)
+  </Tab>
+  
+  <Tab title="Non-EVM">
+    - Solana (34268394551451, 792703809)
+    - Bitcoin (8253038)
+    - Tron (728126428)
+  </Tab>
+</Tabs>
+
+<Note>
+The complete chain mapping includes over 100 networks. See `src/services/chains/chainInfo.ts:17` for the full `CHAINS` record.
+</Note>
+
+## Adding new chains
+
+To add support for a new chain, extend the `CHAINS` record:
+
+```typescript
+export const CHAINS: Record<number, ChainInfo> = {
+  // ... existing chains
+  
+  // New chain
+  12345: {
+    id: 12345,
+    name: 'New Chain',
+    shortName: 'NEW',
+    nativeCurrency: {
+      name: 'New Token',
+      symbol: 'NEW',
+      decimals: 18
+    },
+    blockExplorer: 'https://explorer.newchain.io',
+    color: '#FF5500',
+    logoUrl: 'https://example.com/logo.png'
+  }
+};
+```
+
+<Warning>
+Chain IDs must match the values returned by bridge provider APIs for proper transaction attribution.
+</Warning>
+
+## Chain resolution
+
+When a chain ID is not found in the mapping, the system provides graceful fallback:
+
+```typescript
+export function getChainInfo(chainId: number): ChainInfo {
+  return CHAINS[chainId] ?? {
+    id: chainId,
+    name: `Unknown Chain (${chainId})`,
+    shortName: `${chainId}`,
+    nativeCurrency: { name: 'Unknown', symbol: 'UNK', decimals: 18 },
+    blockExplorer: '',
+    color: '#6B7280',  // Neutral gray
+  };
+}
+```
+
+This ensures the application remains functional even when encountering new or unrecognized chain IDs.

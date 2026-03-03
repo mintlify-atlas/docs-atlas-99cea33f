@@ -1,0 +1,138 @@
+---
+title: 'Bridge Stats API Overview'
+description: 'Aggregate bridge statistics across multiple providers for any wallet address'
+---
+
+## Introduction
+
+The Bridge Stats API provides comprehensive analytics about cross-chain bridging activity for any Ethereum wallet address. It aggregates data from multiple bridge providers (Across, Relay, and LiFi) to give you a complete picture of bridging behavior.
+
+## Base URL
+
+```
+https://yourdomain.com/api/bridge-stats
+```
+
+## Features
+
+### Multi-Provider Aggregation
+
+The API fetches and deduplicates transactions from three major bridge providers:
+- **Across Protocol** - High-speed optimistic bridging
+- **Relay** - Cross-chain messaging and asset transfers
+- **LiFi** - Multi-chain aggregation protocol
+
+### Comprehensive Statistics
+
+For any wallet address and year, the API calculates:
+
+- **Volume Metrics**: Total bridging actions and USD volume
+- **Chain Analytics**: Most used source/destination chains and highest volume destinations
+- **Token Analytics**: Most bridged tokens with volume tracking
+- **Activity Patterns**: Busiest day, monthly activity trends
+- **Provider Breakdown**: Usage statistics per bridge provider
+- **Transaction History**: Complete list of all normalized transactions
+
+### Data Normalization
+
+All transactions from different providers are normalized into a consistent format with:
+- Standardized chain information (ID and name)
+- Token details (symbol, address, formatted amounts)
+- USD value calculations at time of transaction
+- Transaction status tracking
+- Complete metadata preservation
+
+## Rate Limits
+
+The API fetches data from external providers with the following pagination limits:
+- Across: 100 transactions per request
+- Relay: 100 transactions per request  
+- LiFi: 100 transactions per request
+
+Requests are made in parallel for optimal performance.
+
+## Error Handling
+
+The API implements graceful error handling:
+- Individual provider failures don't affect other providers
+- Failed providers return empty arrays and are logged
+- Transactions are deduplicated to prevent counting duplicates
+- Invalid requests return appropriate HTTP status codes with error messages
+
+## Data Deduplication
+
+Transactions are deduplicated based on:
+- Transaction hash (case-insensitive)
+- Source chain ID
+- Destination chain ID
+
+When duplicates are found, the transaction with USD value is preferred.
+
+## Response Format
+
+All successful responses return JSON with comprehensive statistics including:
+- Wallet address and year
+- Generation timestamp
+- Core metrics (total actions, volume)
+- Top chains and tokens (up to 5 each)
+- Monthly activity breakdown
+- Complete transaction list with normalized data
+
+See the [Get Stats endpoint](/api/bridge-stats/get-stats) for detailed response schema.
+
+## Use Cases
+
+- **Portfolio Analytics**: Track bridging activity across all protocols
+- **Year-in-Review**: Generate wrapped statistics for any year
+- **Chain Analysis**: Understand preferred chains and bridging patterns
+- **Volume Tracking**: Monitor USD value of cross-chain transfers
+- **Activity Insights**: Identify peak bridging periods and trends
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Bridge Stats" icon="chart-line" href="/api/bridge-stats/get-stats">
+    Fetch comprehensive bridge statistics for a wallet address
+  </Card>
+  <Card title="Data Types" icon="code" href="#data-types">
+    Learn about the data structures used in responses
+  </Card>
+</CardGroup>
+
+## Data Types
+
+### Chain Statistics
+
+Chain information includes:
+- Chain ID and name
+- Transaction count
+- Percentage of total activity
+- USD volume (for destinations)
+- Chain logo URL
+
+### Token Statistics
+
+Token information includes:
+- Symbol and contract address
+- Transaction count  
+- Total USD volume
+- Percentage of total activity
+- Token logo URL
+
+### Transaction Data
+
+Each normalized transaction contains:
+- Unique ID and provider name
+- Transaction hash and timestamp
+- Source/destination chain details
+- Token information and amounts (raw and formatted)
+- USD value at time of transaction
+- Transaction status (pending, completed, failed)
+
+### Activity Metrics
+
+Activity breakdowns include:
+- Daily activity with destination mapping
+- Monthly aggregates for charting
+- Busiest day with primary destination
+- Provider-specific counts and volumes

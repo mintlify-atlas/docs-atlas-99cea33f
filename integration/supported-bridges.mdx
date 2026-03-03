@@ -1,0 +1,246 @@
+---
+title: Supported bridge protocols
+description: Learn about the bridge protocols integrated into Bridge Wrapped
+---
+
+Bridge Wrapped aggregates data from three major bridge protocols to provide comprehensive bridging statistics for your wallet.
+
+## Overview
+
+The platform fetches and normalizes transaction data from multiple bridge providers to create a unified view of your cross-chain activity. Each bridge adapter implements the `BridgeProviderAdapter` interface located in `src/services/bridges/types.ts:4`.
+
+```typescript
+interface BridgeProviderAdapter {
+  readonly name: BridgeProvider;
+  fetchTransactions(
+    address: string,
+    startTimestamp: number,
+    endTimestamp: number
+  ): Promise<NormalizedBridgeTransaction[]>;
+}
+```
+
+## Supported bridges
+
+### Across Protocol
+
+**Implementation**: `src/services/bridges/across.ts`
+
+**API Endpoint**: `https://app.across.to/api/deposits`
+
+Across Protocol is a cross-chain bridge optimized for capital efficiency. The adapter queries deposit history and normalizes transaction data including:
+
+- Source and destination chain information
+- Token amounts and USD valuations
+- Transaction status (pending, completed, failed)
+- Block timestamps for accurate date tracking
+
+<CodeGroup>
+```typescript Key features
+// Fetches paginated deposit data
+await acrossAdapter.fetchTransactions(address, startTimestamp, endTimestamp)
+
+// Handles status mapping
+if (deposit.status === 'filled') {
+  status = 'completed';
+} else if (deposit.status === 'expired' || deposit.status === 'refunded') {
+  status = 'failed';
+}
+```
+
+```typescript Token information
+// Gets token info from CoinMarketCap API
+const tokenInfo = await coinMarketCapService.getTokenInfo(deposit.inputToken);
+
+// Falls back to API response if needed
+const tokenSymbol = tokenInfo?.symbol || deposit.token?.symbol || deposit.inputToken;
+const tokenDecimals = tokenInfo?.decimals || deposit.token?.decimals || 18;
+```
+</CodeGroup>
+
+**Pagination**: Uses offset-based pagination with a default limit of 100 deposits per request (defined in `src/lib/constants.ts:21`).
+
+---
+
+### Relay
+
+**Implementation**: `src/services/bridges/relay.ts`
+
+**API Endpoint**: `https://api.relay.link/requests/v2`
+
+Relay provides instant cross-chain bridging with a focus on user experience. The adapter processes bridge requests with detailed metadata:
+
+<CodeGroup>
+```typescript Request structure
+// Extracts chain IDs from transaction data
+const originChainId = request.data.inTxs?.[0]?.chainId;
+const destinationChainId = request.data.outTxs?.[0]?.chainId;
+
+// Uses metadata for token information
+const currencyIn = request.data.metadata?.currencyIn;
+const tokenAddress = currencyIn?.currency?.address;
+```
+
+```typescript USD calculations
+// Uses pre-calculated USD amounts from Relay API
+const amountUSD = currencyIn?.amountUsd
+  ? parseFloat(currencyIn.amountUsd)
+  : 0;
+
+const amountFormatted = currencyIn?.amountFormatted
+  ? parseFloat(currencyIn.amountFormatted)
+  : parseTokenAmount(currencyIn?.amount || '0', tokenDecimals);
+```
+</CodeGroup>
+
+**Pagination**: Uses cursor-based continuation tokens for efficient data fetching across multiple pages.
+
+**Status mapping**: Maps various request states (success, completed, failed, refunded, cancelled) to the normalized status format.
+
+---
+
+### LiFi
+
+**Implementation**: `src/services/bridges/lifi.ts`
+
+**API Endpoint**: `https://li.quest/v1/analytics/transfers`
+
+LiFi is a bridge aggregator that routes transfers through multiple underlying protocols. The adapter processes transfer data with comprehensive token information:
+
+<CodeGroup>
+```typescript Transfer data
+// LiFi provides both sending and receiving information
+const transfer = {
+  sending: {
+    txHash: string,
+    chainId: number,
+    amount: string,
+    token: { address, symbol, decimals, priceUSD },
+    timestamp: number
+  },
+  receiving: {
+    chainId: number,
+    // ... destination details
+  }
+}
+```
+
+```typescript Price handling
+// Uses amountUSD if available, otherwise calculates
+let amountUSD = 0;
+if (transfer.sending.amountUSD) {
+  amountUSD = parseFloat(transfer.sending.amountUSD);
+} else if (transfer.sending.token.priceUSD) {
+  const tokenPriceUSD = parseFloat(transfer.sending.token.priceUSD);
+  amountUSD = amountFormatted * tokenPriceUSD;
+}
+```
+</CodeGroup>
+
+**Pagination**: Uses cursor-based pagination with time-based filtering (`fromTimestamp` parameter).
+
+**Timestamp format**: Uses Unix timestamps in seconds (already converted from milliseconds).
+
+## Data aggregation
+
+The `BridgeAggregator` class (`src/services/bridges/aggregator.ts`) coordinates data fetching from all three providers:
+
+```typescript
+// Fetches from all providers in parallel
+const [acrossTransactions, relayTransactions, lifiTransactions] =
+  await Promise.all([
+    acrossAdapter.fetchTransactions(address, startTimestamp, endTimestamp),
+    relayAdapter.fetchTransactions(address, startTimestamp, endTimestamp),
+    lifiAdapter.fetchTransactions(address, startTimestamp, endTimestamp),
+  ]);
+
+// Combines and deduplicates transactions
+const allTransactions = [
+  ...acrossTransactions,
+  ...relayTransactions,
+  ...lifiTransactions,
+];
+
+const deduplicatedTransactions = this.deduplicateTransactions(allTransactions);
+```
+
+### Deduplication logic
+
+Transactions are deduplicated based on a unique key combining transaction hash and chain pair:
+
+```typescript
+const key = `${tx.txHash.toLowerCase()}-${tx.sourceChainId}-${tx.destinationChainId}`;
+
+// Prefers transactions with USD value if duplicates exist
+if (tx.amountUSD > 0 && existing.amountUSD === 0) {
+  seen.set(key, tx);
+}
+```
+
+## Normalized data structure
+
+All bridge transactions are normalized to a common format defined in `src/types/index.ts:5`:
+
+```typescript
+interface NormalizedBridgeTransaction {
+  id: string;
+  provider: 'across' | 'relay' | 'lifi';
+  txHash: string;
+  timestamp: number;
+  
+  // Chain information
+  sourceChainId: number;
+  sourceChainName: string;
+  destinationChainId: number;
+  destinationChainName: string;
+  
+  // Token information
+  tokenSymbol: string;
+  tokenAddress: string;
+  amount: string;              // Raw amount in wei/smallest unit
+  amountFormatted: number;     // Human readable decimal
+  amountUSD: number;           // USD value at transaction time
+  
+  // Status
+  status: 'pending' | 'completed' | 'failed';
+}
+```
+
+## Error handling
+
+Each adapter implements retry logic with exponential backoff using the `retryWithBackoff` utility:
+
+```typescript
+const response = await retryWithBackoff(() =>
+  this.fetchPage(address, offset)
+);
+```
+
+If a provider fails, the aggregator continues with data from successful providers:
+
+```typescript
+acrossAdapter
+  .fetchTransactions(address, startTimestamp, endTimestamp)
+  .catch((err) => {
+    console.error('Across fetch failed:', err);
+    return [];
+  })
+```
+
+<Note>
+The platform gracefully handles partial failures, ensuring you get bridge statistics even if one provider is unavailable.
+</Note>
+
+## Provider statistics
+
+The aggregator tracks per-provider metrics:
+
+```typescript
+providerBreakdown: {
+  across: { count: number, volumeUSD: number },
+  relay: { count: number, volumeUSD: number },
+  lifi: { count: number, volumeUSD: number }
+}
+```
+
+These statistics help you understand which bridge protocols you use most frequently and where your volume is concentrated.

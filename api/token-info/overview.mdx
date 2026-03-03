@@ -1,0 +1,66 @@
+---
+title: 'Token Info API'
+description: 'Retrieve detailed token information from CoinMarketCap'
+---
+
+## Overview
+
+The Token Info API provides a secure server-side proxy to fetch cryptocurrency token metadata from CoinMarketCap. This endpoint is designed to retrieve comprehensive token information including logos, descriptions, platform details, and URLs for multiple token contract addresses.
+
+## Key Features
+
+- **Batch Processing**: Fetch information for multiple token addresses in a single request
+- **Secure API Key Management**: API keys are stored server-side and never exposed to clients
+- **CoinMarketCap Integration**: Direct integration with CoinMarketCap's v2 cryptocurrency info API
+- **Comprehensive Token Data**: Returns detailed metadata including logos, descriptions, tags, platform info, and URLs
+
+## Use Cases
+
+This API is primarily used to:
+
+- Display token logos and metadata in the Bridge Wrapped UI
+- Enrich bridge transaction data with token information
+- Cache token details for improved performance
+- Provide fallback information when token data is not available from bridge providers
+
+## Implementation Details
+
+The API is implemented as a Next.js API route located at `src/app/api/token-info/route.ts`. It accepts POST requests with an array of token contract addresses and returns the corresponding token information from CoinMarketCap.
+
+### Client-Side Integration
+
+The API is consumed by the `CoinMarketCapService` class (`src/services/tokens/coinmarketcap.ts`), which:
+
+- Maintains a 1-hour cache of token information
+- Provides fallback information for common tokens (ETH, WETH, USDC, USDT, DAI)
+- Handles both server-side and client-side requests
+- Implements request timeouts (5 seconds) to prevent hanging requests
+
+### Supported Token Information
+
+The API returns comprehensive token data including:
+
+- Token ID, name, symbol, and slug
+- Logo URL and description
+- Date added and launch date
+- Tags and category classification
+- Platform information (chain name and contract address)
+- URLs for website, documentation, social media, blockchain explorers, and source code
+
+## Error Handling
+
+The API implements robust error handling:
+
+- **400 Bad Request**: Invalid request format or missing addresses array
+- **500 Internal Server Error**: Missing API key configuration or CoinMarketCap API failures
+- **Timeout Protection**: Requests are cancelled if they exceed 5 seconds
+
+## Authentication
+
+This API requires a CoinMarketCap API key configured as the `COINMARKETCAP_API_KEY` environment variable. The API key is only accessible server-side, ensuring secure credential management.
+
+## Next Steps
+
+<Card title="Get Token Info" icon="code" href="/api/token-info/get-token-info">
+  Learn how to fetch token information for one or more contract addresses
+</Card>

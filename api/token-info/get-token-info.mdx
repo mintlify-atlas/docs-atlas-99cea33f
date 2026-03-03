@@ -1,0 +1,318 @@
+---
+title: 'POST /api/token-info'
+description: 'Fetch detailed token information from CoinMarketCap'
+api: 'POST /api/token-info'
+---
+
+## Overview
+
+Retrieves comprehensive token metadata from CoinMarketCap for one or more token contract addresses. This endpoint acts as a secure server-side proxy to the CoinMarketCap API, ensuring API keys remain protected.
+
+## Request
+
+### Body Parameters
+
+<ParamField body="addresses" type="string[]" required>
+  Array of token contract addresses to fetch information for. Addresses should be provided as hexadecimal strings (e.g., `0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`).
+</ParamField>
+
+## Response
+
+The API returns the standard CoinMarketCap v2 cryptocurrency info response format.
+
+### Success Response
+
+<ResponseField name="data" type="object">
+  Object containing token information keyed by contract address (lowercase).
+  
+  <Expandable title="Token Info Properties">
+    <ResponseField name="id" type="number">
+      CoinMarketCap unique identifier for the token
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Full name of the token (e.g., "USD Coin")
+    </ResponseField>
+    
+    <ResponseField name="symbol" type="string">
+      Token symbol (e.g., "USDC")
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string">
+      URL-friendly identifier for the token
+    </ResponseField>
+    
+    <ResponseField name="logo" type="string">
+      URL to the token's logo image
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Detailed description of the token and its purpose
+    </ResponseField>
+    
+    <ResponseField name="date_added" type="string">
+      ISO 8601 timestamp when the token was added to CoinMarketCap
+    </ResponseField>
+    
+    <ResponseField name="date_launched" type="string | null">
+      ISO 8601 timestamp when the token was officially launched
+    </ResponseField>
+    
+    <ResponseField name="tags" type="string[]">
+      Array of category tags associated with the token (e.g., "stablecoin", "defi")
+    </ResponseField>
+    
+    <ResponseField name="platform" type="object | null">
+      Platform/blockchain information for the token
+      
+      <Expandable title="Platform Properties">
+        <ResponseField name="name" type="string">
+          Name of the blockchain platform (e.g., "Ethereum")
+        </ResponseField>
+        
+        <ResponseField name="token_address" type="string">
+          Contract address on the specified platform
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="category" type="string">
+      Primary category classification for the token
+    </ResponseField>
+    
+    <ResponseField name="urls" type="object">
+      Collection of relevant URLs for the token
+      
+      <Expandable title="URL Properties">
+        <ResponseField name="website" type="string[]">
+          Official website URLs
+        </ResponseField>
+        
+        <ResponseField name="technical_doc" type="string[]">
+          Technical documentation and whitepaper URLs
+        </ResponseField>
+        
+        <ResponseField name="twitter" type="string[]">
+          Twitter/X profile URLs
+        </ResponseField>
+        
+        <ResponseField name="explorer" type="string[]">
+          Blockchain explorer URLs for the token
+        </ResponseField>
+        
+        <ResponseField name="source_code" type="string[]">
+          Source code repository URLs (e.g., GitHub)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="object">
+  CoinMarketCap API status information
+  
+  <Expandable title="Status Properties">
+    <ResponseField name="timestamp" type="string">
+      ISO 8601 timestamp of the response
+    </ResponseField>
+    
+    <ResponseField name="error_code" type="number">
+      Error code (0 indicates success)
+    </ResponseField>
+    
+    <ResponseField name="error_message" type="string | null">
+      Error message if an error occurred, null otherwise
+    </ResponseField>
+    
+    <ResponseField name="elapsed" type="number">
+      Time elapsed for the API request in milliseconds
+    </ResponseField>
+    
+    <ResponseField name="credit_count" type="number">
+      Number of API credits consumed by this request
+    </ResponseField>
+    
+    <ResponseField name="notice" type="string | null">
+      Any notices or warnings from the API
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Error Responses
+
+<ResponseField name="error" type="string">
+  Error message describing what went wrong
+</ResponseField>
+
+#### Error Codes
+
+- **400 Bad Request**: `addresses` parameter is missing or not an array
+- **500 Internal Server Error**: API key not configured or CoinMarketCap API request failed
+
+## Examples
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://your-domain.com/api/token-info \
+  -H "Content-Type: application/json" \
+  -d '{
+    "addresses": [
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    ]
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('/api/token-info', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    addresses: [
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+      '0xdac17f958d2ee523a2206206994597c13d831ec7'  // USDT
+    ]
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+url = "https://your-domain.com/api/token-info"
+payload = {
+    "addresses": [
+        "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    ]
+}
+
+response = requests.post(url, json=payload)
+data = response.json()
+print(data)
+```
+</CodeGroup>
+
+### Success Response Example
+
+```json
+{
+  "data": {
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+      "id": 3408,
+      "name": "USD Coin",
+      "symbol": "USDC",
+      "slug": "usd-coin",
+      "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+      "description": "USD Coin (USDC) is a stablecoin that is pegged to the U.S. dollar on a 1:1 basis...",
+      "date_added": "2018-10-08T00:00:00.000Z",
+      "date_launched": "2018-09-26T00:00:00.000Z",
+      "tags": ["stablecoin", "asset-backed-stablecoin", "defi"],
+      "platform": {
+        "name": "Ethereum",
+        "token_address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      },
+      "category": "stablecoin",
+      "urls": {
+        "website": ["https://www.circle.com/usdc"],
+        "technical_doc": ["https://www.centre.io/pdfs/attestation/Grant-Thornton_circle_usdc_reserves_07312021.pdf"],
+        "twitter": ["https://twitter.com/circle"],
+        "explorer": [
+          "https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+        ],
+        "source_code": ["https://github.com/centrehq"]
+      }
+    },
+    "0xdac17f958d2ee523a2206206994597c13d831ec7": {
+      "id": 825,
+      "name": "Tether",
+      "symbol": "USDT",
+      "slug": "tether",
+      "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png",
+      "description": "Tether (USDT) is a stablecoin cryptocurrency that is pegged 1:1 to the US dollar...",
+      "date_added": "2015-02-25T00:00:00.000Z",
+      "date_launched": null,
+      "tags": ["stablecoin", "asset-backed-stablecoin", "payments"],
+      "platform": {
+        "name": "Ethereum",
+        "token_address": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      },
+      "category": "stablecoin",
+      "urls": {
+        "website": ["https://tether.to/"],
+        "technical_doc": ["https://tether.to/wp-content/uploads/2016/06/TetherWhitePaper.pdf"],
+        "twitter": ["https://twitter.com/Tether_to"],
+        "explorer": [
+          "https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7"
+        ],
+        "source_code": []
+      }
+    }
+  },
+  "status": {
+    "timestamp": "2026-03-03T10:30:45.123Z",
+    "error_code": 0,
+    "error_message": null,
+    "elapsed": 234,
+    "credit_count": 1,
+    "notice": null
+  }
+}
+```
+
+### Error Response Examples
+
+#### Invalid Request (400)
+
+```json
+{
+  "error": "Invalid request: addresses must be an array"
+}
+```
+
+#### API Key Not Configured (500)
+
+```json
+{
+  "error": "API key not configured"
+}
+```
+
+#### CoinMarketCap API Error (500)
+
+```json
+{
+  "error": "CoinMarketCap API request failed"
+}
+```
+
+## Implementation Notes
+
+### Server-Side Only
+
+This endpoint is designed to be called from the server-side or through the `CoinMarketCapService` client wrapper. The API key is stored as an environment variable (`COINMARKETCAP_API_KEY`) and should never be exposed to clients.
+
+### Caching Strategy
+
+The `CoinMarketCapService` implements a 1-hour cache for token information to reduce API calls and improve performance. Consider implementing additional caching layers if needed.
+
+### Fallback Information
+
+The service provides built-in fallback information for common tokens (ETH, WETH, USDC, USDT, DAI) across multiple chains. This ensures the UI can display basic information even when the CoinMarketCap API is unavailable.
+
+### Rate Limits
+
+Be aware of CoinMarketCap API rate limits based on your subscription tier. Implement appropriate throttling and caching strategies to stay within limits.
+
+## Related Resources
+
+- CoinMarketCap API Documentation: https://coinmarketcap.com/api/documentation/v1/
+- Source Code: `src/app/api/token-info/route.ts`
+- Service Implementation: `src/services/tokens/coinmarketcap.ts`

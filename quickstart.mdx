@@ -1,80 +1,221 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get your Bridge Wrapped analytics in minutes
 ---
 
-## Get started in three steps
+## View your Bridge Wrapped
 
-Get your documentation site running locally and make your first customization.
+Bridge Wrapped makes it easy to visualize your cross-chain bridging activity. You can access your stats by connecting your wallet or looking up any Ethereum address.
 
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+<Steps>
+  <Step title="Visit Bridge Wrapped">
+    Navigate to the Bridge Wrapped landing page. You'll see the main hero section with the title "Bridge Wrapped" and the current year (2025).
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    The page displays: "Discover your cross-chain bridging journey in 2025" with a note that data is aggregated from Across, Relay & LiFi.
+  </Step>
+
+  <Step title="Connect your wallet or enter an address">
+    You have two options to view bridging stats:
+
+    ### Option 1: Connect your wallet
+
+    Click the **Connect Wallet** button in the top right corner. This uses RainbowKit and supports all major Ethereum wallets.
+
+    Once connected:
+    - Your wallet address appears in the header
+    - Click **Get Your Wrapped** to fetch your stats
+
+    <Tip>
+      You can switch between different chains after connecting. Bridge Wrapped will still query your address across all supported chains.
+    </Tip>
+
+    ### Option 2: Look up any address
+
+    Enter an Ethereum address or ENS name in the search field:
+
+    <CodeGroup>
+    ```text Ethereum Address
+    0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+    ```
+
+    ```text ENS Name
+    vitalik.eth
+    ```
+    </CodeGroup>
+
+    Click **Look up** to fetch stats for that address.
+
+    <Info>
+      ENS names are automatically resolved to Ethereum addresses. If resolution fails, you'll see a helpful error message.
+    </Info>
+  </Step>
+
+  <Step title="Wait for data aggregation">
+    Bridge Wrapped queries all three bridge protocols in parallel:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    - **Across Protocol API** at `https://app.across.to/api`
+    - **Relay API** at `https://api.relay.link`
+    - **LiFi API** at `https://li.quest/v1`
 
-### Step 2: Deploy your changes
+    You'll see a loading screen with the message: "Fetching your bridging history..." and "Querying Across, Relay, and LiFi for your transactions..."
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    This typically takes 3-10 seconds depending on your transaction count.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Note>
+      Transactions are deduplicated based on transaction hash and chain pair to ensure accurate counts.
+    </Note>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Experience your Wrapped">
+    If bridging activity is found, you'll enter the interactive Wrapped experience with multiple slides:
 
-### Step 3: Go live
+    ### Navigation
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    - **Click** left or right half of the screen to navigate
+    - **Arrow keys** (← →) to move between slides  
+    - **Spacebar** to advance to next slide
+    - **Progress dots** at the bottom show your position
+
+    ### Slide sequence
+
+    1. **Intro slide** - "Bridge Wrapped 2025"
+    2. **Total bridges** - Your total bridging actions count
+    3. **Top source chain** - Most frequently used source chain (src/app/page.tsx:123)
+    4. **Top destination** - Most popular destination chain
+    5. **Volume slide** - Total volume in USD
+    6. **Top token** - Most bridged token by count
+    7. **Busiest day** - Day with most bridges and primary destination
+    8. **User class** - Your classification based on activity (src/components/wrapped/slides/UserClassSlide.tsx:1)
+    9. **Avail Nexus** - Special promotional slide
+    10. **Summary** - Final recap slide
+
+    <Tip>
+      Some slides may be skipped if you don't have data for them. For example, if you only bridged once, there won't be a "busiest day" slide.
+    </Tip>
+  </Step>
+
+  <Step title="View detailed summary">
+    After completing the Wrapped experience, you'll see a detailed statistics summary page with:
+
+    ### Charts and visualizations
+
+    - **Monthly activity bar chart** - Bridging count per month
+    - **Destination chains pie chart** - Distribution across chains  
+    - **Busiest day card** - Highlighted day with transaction count
+
+    ### Statistics tables
+
+    <Tabs>
+      <Tab title="Core stats">
+        - Total bridges count
+        - Total volume in USD
+        - Top source chain
+        - Top destination chain
+      </Tab>
+      <Tab title="Provider breakdown">
+        - Across transaction count
+        - Relay transaction count  
+        - LiFi transaction count
+      </Tab>
+      <Tab title="Token stats">
+        - Top 5 most bridged tokens
+        - Bridge count per token
+        - Volume in USD per token
+      </Tab>
+    </Tabs>
+
+    ### Your user class
+
+    See your cross-chain classification with:
+    - Class title and description
+    - Rarity stars (★ rating)
+    - Class-specific image
+
+    <Info>
+      Click **View Wrapped Experience** at any time to replay the slides.
+    </Info>
+  </Step>
+</Steps>
+
+## No bridging activity?
+
+If no bridging transactions are found for the address in 2025, you'll see:
+
+- A "No Bridges Found" message
+- Suggestion to try a different address
+- **Try Another Address** button to search again
+
+This can happen if:
+- The address has no bridging activity in 2025
+- The address only used bridges not supported by Bridge Wrapped
+- You entered an invalid address or ENS name
+
+## API endpoint reference
+
+Bridge Wrapped uses the following API endpoint defined in `src/app/api/bridge-stats/[address]/route.ts:10`:
+
+```typescript
+GET /api/bridge-stats/{address}?year={year}
+```
+
+### Parameters
+
+- `address` (required) - Valid Ethereum address (0x...)
+- `year` (optional) - Year to query, defaults to 2025
+
+### Response
+
+Returns a `BridgeWrappedStats` object with:
+
+```typescript
+{
+  walletAddress: string;
+  year: number;
+  totalBridgingActions: number;
+  totalVolumeUSD: number;
+  mostUsedSourceChain: ChainStats | null;
+  mostUsedDestinationChain: ChainStats | null;
+  // ... more fields
+}
+```
+
+<Card
+  title="View full API reference"
+  icon="code"
+  href="/api/bridge-stats/get-stats"
+>
+  See complete API documentation with request/response examples.
+</Card>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card
+    title="Understand user classification"
+    icon="star"
+    href="/features/user-classification"
+  >
+    Learn how Bridge Wrapped classifies users based on activity.
+  </Card>
+  <Card
+    title="Bridge aggregation"
+    icon="layer-group"
+    href="/features/bridge-aggregation"
+  >
+    See how transactions are fetched and normalized across protocols.
+  </Card>
+  <Card
+    title="Supported chains"
+    icon="link"
+    href="/integration/supported-chains"
+  >
+    View all supported source and destination chains.
+  </Card>
+  <Card
+    title="Wallet connection"
+    icon="wallet"
+    href="/features/wallet-connection"
+  >
+    Learn about RainbowKit integration and ENS support.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
