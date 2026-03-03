@@ -1,0 +1,82 @@
+{
+  "projectType": "saas",
+  "projectName": "Bridge Wrapped",
+  "projectDescription": "An analytics platform that visualizes cross-chain bridging activity from Across, Relay, and LiFi protocols.",
+  "theme": "palm",
+  "primaryColor": "#ffffff",
+  "lightColor": "#f5f5f5",
+  "darkColor": "#171717",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/wallet-connection",
+              "features/bridge-aggregation",
+              "features/wrapped-experience",
+              "features/user-classification"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/supported-bridges",
+              "integration/supported-chains",
+              "integration/token-information"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Bridge Stats",
+            "pages": [
+              "api/bridge-stats/overview",
+              "api/bridge-stats/get-stats"
+            ]
+          },
+          {
+            "group": "Token Info",
+            "pages": [
+              "api/token-info/overview",
+              "api/token-info/get-token-info"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-bridge aggregation (Across, Relay, LiFi)",
+    "Interactive Wrapped-style statistics presentation",
+    "Wallet connection with RainbowKit and Wagmi",
+    "ENS name resolution",
+    "User classification system (5 tiers from Noob to Farmer Whale)",
+    "Real-time bridging analytics and visualizations",
+    "Chain and token statistics tracking",
+    "Monthly activity charts and busiest day analysis"
+  ],
+  "publicApiSurface": [
+    "GET /api/bridge-stats/[address]",
+    "GET /api/token-info",
+    "BridgeAggregator.getWrappedStats()",
+    "acrossAdapter.fetchTransactions()",
+    "relayAdapter.fetchTransactions()",
+    "lifiAdapter.fetchTransactions()",
+    "useBridgeStatsQuery()",
+    "useEnsName()",
+    "classifyUser()"
+  ]
+}
